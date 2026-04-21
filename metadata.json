@@ -1,0 +1,12 @@
+{
+  "name": "Smart SRH Chat Assistant",
+  "description": "Anonymized, stigma-free AI assistant for reproductive health information, contraceptive guidance, and clinic finding in Kenya.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "AI Chat",
+    "Clinic Finder",
+    "Reproductive Health recommendations"
+  ]
+}

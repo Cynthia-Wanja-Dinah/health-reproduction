@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entity Validations ---
+
+    function isValidUserProfile(data) {
+      return data.userId == request.auth.uid &&
+             data.createdAt == request.time &&
+             data.updatedAt == request.time &&
+             (data.get('age', 18) is int) &&
+             (data.get('gender', '') is string) &&
+             (data.get('locale', 'en') in ['en', 'sw']);
+    }
+
+    function isValidChatThread(data) {
+      return data.userId == request.auth.uid &&
+             data.createdAt == request.time &&
+             data.updatedAt == request.time &&
+             data.title is string && data.title.size() <= 200;
+    }
+
+    function isValidChatMessage(data) {
+      return data.role in ['user', 'model'] &&
+             data.content is string && data.content.size() <= 5000 &&
+             data.createdAt == request.time;
+    }
+
+    // --- Rules ---
+
+    // User Profiles
+    match /userProfiles/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(incoming()) && isValidId(userId);
+      allow update: if isOwner(userId) && 
+                      incoming().userId == userId &&
+                      incoming().updatedAt == request.time &&
+                      isValidUserProfile(incoming());
+    }
+
+    // Chat Threads
+    match /chatThreads/{threadId} {
+      allow list, get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidChatThread(incoming()) && isValidId(threadId);
+      allow update: if isOwner(existing().userId) && 
+                      incoming().userId == existing().userId &&
+                      incoming().updatedAt == request.time &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'title']);
+      allow delete: if isOwner(existing().userId);
+
+      // Messages (Subcollection)
+      match /messages/{messageId} {
+        // Deriving access from parent thread ownership
+        allow list, get: if isSignedIn() && get(/databases/$(database)/documents/chatThreads/$(threadId)).data.userId == request.auth.uid;
+        allow create: if isSignedIn() && get(/databases/$(database)/documents/chatThreads/$(threadId)).data.userId == request.auth.uid &&
+                        isValidChatMessage(incoming()) && isValidId(messageId);
+      }
+    }
+
+    // Clinics (Public Read)
+    match /clinics/{clinicId} {
+      allow read: if true;
+      allow write: if false; 
+    }
+  }
+}

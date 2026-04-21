@@ -1,0 +1,76 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Minimal user data for personalized SRH recommendations.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID" },
+        "age": { "type": "integer", "description": "User age" },
+        "gender": { "type": "string", "enum": ["female", "male", "other", "prefer_not_to_say"] },
+        "sexualActivity": { "type": "string", "description": "Brief description of activity or status" },
+        "preferences": { "type": "array", "items": { "type": "string" }, "description": "Contraceptive preferences" },
+        "locale": { "type": "string", "enum": ["en", "sw"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "createdAt", "updatedAt"]
+    },
+    "ChatThread": {
+      "title": "Chat Thread",
+      "description": "A conversation history container.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "A individual message within a thread.",
+      "type": "object",
+      "properties": {
+        "threadId": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["threadId", "role", "content", "createdAt"]
+    },
+    "Clinic": {
+      "title": "Clinic",
+      "description": "Public clinic information.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "location": { "type": "string" },
+        "services": { "type": "array", "items": { "type": "string" } },
+        "contact": { "type": "string" },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" }
+      },
+      "required": ["name", "location"]
+    }
+  },
+  "firestore": {
+    "/userProfiles/{userId}": {
+      "schema": "UserProfile",
+      "description": "Private user profiles."
+    },
+    "/chatThreads/{threadId}": {
+      "schema": "ChatThread",
+      "description": "Container for user chats."
+    },
+    "/chatThreads/{threadId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Individual messages in a thread."
+    },
+    "/clinics/{clinicId}": {
+      "schema": "Clinic",
+      "description": "Public directory of SRH clinics."
+    }
+  }
+}
